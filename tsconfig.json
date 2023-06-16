@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "lib": ["ESNext"],
+        "target":"ESNext",
+        "module": "ESNext",
+        "moduleResolution": "NodeNext",
+        "declaration": true,
+        "outDir": "./dist",
+    }
+}

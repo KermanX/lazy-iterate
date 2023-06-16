@@ -1,0 +1,21 @@
+{
+    "type": "module",
+    "name": "lazy-iterator",
+    "version": "1.0.0",
+    "description": "Yet another package for lazy iteration in JavaScript",
+    "main": "./dist/index.js",
+    "types": "./dist/index.d.ts",
+    "scripts": {
+        "build": "tsc"
+    },
+    "keywords": [
+        "lazy",
+        "iteration",
+        "javascript"
+    ],
+    "author": "_Kerman",
+    "license": "Apache-2.0",
+    "devDependencies": {
+        "typescript": "^5.1.3"
+    }
+}
