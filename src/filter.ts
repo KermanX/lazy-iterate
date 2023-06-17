@@ -1,14 +1,10 @@
-import {
-  LazyIterator,
-  injectLazyIterator,
-  LazyCachedIterator,
-} from "./index.js";
+import { LazyIterator, injectLazyIterator } from "./index.js";
 
 export class LazyFilterIterator<
   T,
   TReturn = any,
   TNext = undefined
-> extends LazyCachedIterator<T, TReturn, TNext> {
+> extends LazyIterator<T, TReturn, TNext> {
   protected source: LazyIterator<T, TReturn, TNext>;
   protected predicate: (value: T) => boolean;
 
@@ -29,7 +25,6 @@ export class LazyFilterIterator<
       }
       old = this.source.next(...args);
     }
-    this.cacheResult(old);
     return old;
   }
 }

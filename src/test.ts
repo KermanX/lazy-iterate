@@ -1,4 +1,4 @@
-import { LazyIterator, injectLazyIterator } from "./index.js";
+import { LazyIterator,lazyIteratorFactory, injectLazyIterator } from "./index.js";
 
 const log = globalThis.console.log.bind(globalThis.console);
 
@@ -10,10 +10,10 @@ declare module "./index.js" {
 }
 
 injectLazyIterator("foo", function () {
-  return this.currentPos;
+  return 114514;
 });
 
-const v = LazyIterator.from([1, 1, 4, 5, 1, 4]);
+const v = lazyIteratorFactory.from([1, 1, 4, 5, 1, 4]);
 
 log("before mapping");
 

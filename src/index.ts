@@ -2,6 +2,10 @@ export interface LazyIterator<T, TReturn = any, TNext = undefined> {
   //...
 }
 
+export interface LazyIteratorFactory {
+  //...
+}
+
 export type YieldMapper<F, T> = (value: F, index: number) => T;
 
 export const doneSymbol = Symbol();
@@ -17,12 +21,19 @@ export abstract class LazyIterator<T, TReturn = any, TNext = undefined>
   public [Symbol.iterator](): IterableIterator<T> {
     return this;
   }
-
-  public static from<T>(iterable: Iterable<T>) {
-    return new BasicLazyIterator(iterable[Symbol.iterator]());
-  }
 }
 
+export class LazyIteratorFactory {}
+
+export function injectLazyIteratorFactory(k: string | symbol, sth: any) {
+  Object.defineProperty(LazyIteratorFactory.prototype, k, {
+    value: sth,
+  });
+}
+
+export const lazyIteratorFactory = new LazyIteratorFactory();
+
+/*
 export abstract class LazyCachedIterator<
   T,
   TReturn = any,
@@ -62,6 +73,7 @@ export abstract class LazyCachedIterator<
     }
   }
 }
+*/
 
 export function injectLazyIterator(k: string | symbol, sth: any) {
   Object.defineProperty(LazyIterator.prototype, k, {
@@ -77,8 +89,10 @@ export class LazyMapIterator<
   FReturn = any,
   TReturn = FReturn,
   TNext = undefined
-> extends LazyCachedIterator<T, TReturn, TNext> {
+> extends LazyIterator<T, TReturn, TNext> {
   protected source: LazyIterator<F, FReturn, TNext>;
+  protected currentPos = -1;
+
   protected yieldMapper: YieldMapper<F, T>;
   protected returnMapper: ReturnMapper<FReturn, TReturn>;
 
@@ -94,8 +108,9 @@ export class LazyMapIterator<
   }
 
   public next(...args: [] | [TNext]) {
+    this.currentPos++;
     const old = this.source.next(...args);
-    let neo = old.done
+    return old.done
       ? {
           done: true as const,
           value: this.returnMapper(old.value),
@@ -107,17 +122,17 @@ export class LazyMapIterator<
             this.currentPos
           ),
         };
-    this.cacheResult(neo);
-    return neo;
+  }
+}
+declare module "./index.js" {
+  interface LazyIterator<T, TReturn = any, TNext = undefined> {
+    map<N, NReturn>(
+      yieldMapper: YieldMapper<T, N>,
+      returnMapper: ReturnMapper<TReturn, NReturn>
+    ): LazyMapIterator<T, N, TReturn, NReturn, TNext>;
   }
 }
 
-export interface LazyIterator<T, TReturn = any, TNext = undefined> {
-  map<N, NReturn>(
-    yieldMapper: YieldMapper<T, N>,
-    returnMapper: ReturnMapper<TReturn, NReturn>
-  ): LazyMapIterator<T, N, TReturn, NReturn, TNext>;
-}
 injectLazyIterator("map", function (yieldMapper: any, returnMapper: any) {
   return new LazyMapIterator(this, yieldMapper, returnMapper);
 });
@@ -138,3 +153,19 @@ export class BasicLazyIterator<
     return this.source.next(...args);
   }
 }
+
+declare module "./index.js" {
+  interface LazyIteratorFactory {
+    from<T>(source: Iterable<T>): LazyIterator<T, any, undefined>;
+    from<T, TReturn, TNext>(
+      source: Iterator<T, TReturn, TNext>
+    ): LazyIterator<T, TReturn, TNext>;
+  }
+}
+
+injectLazyIteratorFactory("from", function (source: any) {
+  if (typeof source[Symbol.iterator] === "function") {
+    return new BasicLazyIterator(source[Symbol.iterator]());
+  }
+  return new BasicLazyIterator(source);
+});

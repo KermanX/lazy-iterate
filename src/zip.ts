@@ -1,8 +1,19 @@
-import {
-  LazyIterator,
-  injectLazyIterator,
-  LazyCachedIterator,
-} from "./index.js";
+import { LazyIterator, injectLazyIterator } from "./index.js";
+
+export const iter1doneSymbol = Symbol("iter1done");
+export const iter2doneSymbol = Symbol("iter2done");
+
+type DoneType = typeof iter1doneSymbol | typeof iter2doneSymbol;
+
+type ZipReturn<TReturn1, TReturn2> =
+  | {
+      type: typeof iter1doneSymbol;
+      value: TReturn1;
+    }
+  | {
+      type: typeof iter2doneSymbol;
+      value: TReturn2;
+    };
 
 export class LazyZipIterator<
   T1,
@@ -11,7 +22,11 @@ export class LazyZipIterator<
   TReturn2 = any,
   TNext1 = undefined,
   TNext2 = undefined
-> extends LazyCachedIterator<[T1, T2], TReturn1 | TReturn2, [TNext1, TNext2]> {
+> extends LazyIterator<
+  [T1, T2],
+  ZipReturn<TReturn1, TReturn2>,
+  [TNext1, TNext2]
+> {
   protected source1: LazyIterator<T1, TReturn1, TNext1>;
   protected source2: LazyIterator<T2, TReturn2, TNext2>;
 
@@ -32,8 +47,14 @@ export class LazyZipIterator<
       ? {
           done: true as const,
           value: old1.done
-            ? old1.value
-            : (old2 as IteratorReturnResult<TReturn2>).value,
+            ? {
+                type: iter1doneSymbol as typeof iter1doneSymbol,
+                value: old1.value,
+              }
+            : {
+                type: iter2doneSymbol as typeof iter2doneSymbol,
+                value: (old2 as IteratorReturnResult<TReturn2>).value,
+              },
         }
       : {
           done: false as const,
@@ -42,7 +63,6 @@ export class LazyZipIterator<
             (old2 as IteratorYieldResult<T2>).value,
           ] as [T1, T2],
         };
-    this.cacheResult(result);
     return result;
   }
 }
@@ -58,3 +78,56 @@ declare module "./index.js" {
 injectLazyIterator("zip", function (other: any) {
   return new LazyZipIterator(this, other);
 });
+
+export class LazyZipLongestIterator<
+  T1,
+  T2,
+  TReturn1 = any,
+  TReturn2 = any,
+  TNext1 = undefined,
+  TNext2 = undefined
+> extends LazyIterator<[T1, T2], [TReturn1, TReturn2], [TNext1, TNext2]> {
+  protected source1: LazyIterator<T1, TReturn1, TNext1>;
+  protected source2: LazyIterator<T2, TReturn2, TNext2>;
+  protected fillValue1: T1;
+  protected fillValue2: T2;
+
+  constructor(
+    source1: LazyIterator<T1, TReturn1, TNext1>,
+    source2: LazyIterator<T2, TReturn2, TNext2>,
+    fillValue1: T1,
+    fillValue2: T2
+  ) {
+    super();
+    this.source1 = source1;
+    this.source2 = source2;
+    this.fillValue1 = fillValue1;
+    this.fillValue2 = fillValue2;
+  }
+
+  public next(args: [TNext1, TNext2]) {
+    const old1 = this.source1.next(args[0]);
+    const old2 = this.source2.next(args[1]);
+    const done = old1.done && old2.done;
+    const result = done
+      ? {
+          done: true as const,
+          value: [
+            old1.value,
+            (old2 as IteratorReturnResult<TReturn2>).value,
+          ] as [TReturn1, TReturn2],
+        }
+      : {
+          done: false as const,
+          value: [
+            old1.done
+              ? this.fillValue1
+              : (old1 as IteratorYieldResult<T1>).value,
+            old2.done
+              ? this.fillValue2
+              : (old2 as IteratorYieldResult<T2>).value,
+          ] as [T1, T2],
+        };
+    return result;
+  }
+}

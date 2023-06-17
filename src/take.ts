@@ -2,7 +2,7 @@ import { injectLazyIterator } from "./index.js";
 
 declare module "./index.js" {
   interface LazyIterator<T, TReturn, TNext> {
-    take<N extends number>(n: N): T[] & { length: N };
+    take<N extends number>(n: N): T[] & { readonly length: N };
   }
 }
 
