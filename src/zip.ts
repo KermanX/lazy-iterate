@@ -1,4 +1,8 @@
-import { LazyIterator, injectLazyIterator } from "./index.js";
+import {
+  LazyIterator,
+  injectLazyIterator,
+  LazyCachedIterator,
+} from "./index.js";
 
 export class LazyZipIterator<
   T1,
@@ -7,7 +11,7 @@ export class LazyZipIterator<
   TReturn2 = any,
   TNext1 = undefined,
   TNext2 = undefined
-> extends LazyIterator<[T1, T2], TReturn1 | TReturn2, [TNext1, TNext2]> {
+> extends LazyCachedIterator<[T1, T2], TReturn1 | TReturn2, [TNext1, TNext2]> {
   protected source1: LazyIterator<T1, TReturn1, TNext1>;
   protected source2: LazyIterator<T2, TReturn2, TNext2>;
 

@@ -1,10 +1,14 @@
-import { LazyIterator, injectLazyIterator } from "./index.js";
+import {
+  LazyIterator,
+  injectLazyIterator,
+  LazyCachedIterator,
+} from "./index.js";
 
 export class LazyFilterIterator<
   T,
   TReturn = any,
   TNext = undefined
-> extends LazyIterator<T, TReturn, TNext> {
+> extends LazyCachedIterator<T, TReturn, TNext> {
   protected source: LazyIterator<T, TReturn, TNext>;
   protected predicate: (value: T) => boolean;
 

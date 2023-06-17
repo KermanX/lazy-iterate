@@ -7,9 +7,28 @@ export type YieldMapper<F, T> = (value: F, index: number) => T;
 export const doneSymbol = Symbol();
 export const undoneSymbol = Symbol();
 
-export abstract class LazyIterator<T, TReturn = any, TNext = undefined> implements Iterable<T>{
-  protected cache: T[] = [];
+export abstract class LazyIterator<T, TReturn = any, TNext = undefined>
+  implements IterableIterator<T>
+{
   protected done: typeof undoneSymbol | TReturn = undoneSymbol;
+
+  public abstract next(...args: [] | [TNext]): IteratorResult<T, TReturn>;
+
+  public [Symbol.iterator](): IterableIterator<T> {
+    return this;
+  }
+
+  public static from<T>(iterable: Iterable<T>) {
+    return new BasicLazyIterator(iterable[Symbol.iterator]());
+  }
+}
+
+export abstract class LazyCachedIterator<
+  T,
+  TReturn = any,
+  TNext = undefined
+> extends LazyIterator<T, TReturn, TNext> {
+  protected cache: T[] = [];
 
   public get currentPos() {
     return this.cache.length;
@@ -35,29 +54,12 @@ export abstract class LazyIterator<T, TReturn = any, TNext = undefined> implemen
     return (v as IteratorYieldResult<T>).value;
   }
 
-  public abstract next(...args: [] | [TNext]): IteratorResult<T, TReturn>;
-
   protected cacheResult(result: IteratorResult<T, TReturn>) {
     if (result.done) {
       this.done = result.value;
     } else {
       this.cache.push((result as IteratorYieldResult<T>).value);
     }
-  }
-
-  [Symbol.iterator](){
-    return this;
-  }
-
-  /*
-  public next():IteratorResult<T,TReturn>{
-    const v=this.mapper(this.source.next(),this.currentPos);
-    this.cache.push(v);
-    return v;
-  }*/
-
-  static from<T,TReturn=any,TNext=undefined>(iterable:Iterable<T>){
-    return new BasicLazyIterator(iterable[Symbol.iterator]())
   }
 }
 
@@ -75,7 +77,7 @@ export class LazyMapIterator<
   FReturn = any,
   TReturn = FReturn,
   TNext = undefined
-> extends LazyIterator<T, TReturn, TNext> {
+> extends LazyCachedIterator<T, TReturn, TNext> {
   protected source: LazyIterator<F, FReturn, TNext>;
   protected yieldMapper: YieldMapper<F, T>;
   protected returnMapper: ReturnMapper<FReturn, TReturn>;
@@ -116,7 +118,7 @@ export interface LazyIterator<T, TReturn = any, TNext = undefined> {
     returnMapper: ReturnMapper<TReturn, NReturn>
   ): LazyMapIterator<T, N, TReturn, NReturn, TNext>;
 }
-injectLazyIterator("map", function (yieldMapper:any, returnMapper:any) {
+injectLazyIterator("map", function (yieldMapper: any, returnMapper: any) {
   return new LazyMapIterator(this, yieldMapper, returnMapper);
 });
 
@@ -127,9 +129,9 @@ export class BasicLazyIterator<
 > extends LazyIterator<T, TReturn, TNext> {
   protected source: Iterator<T, TReturn, TNext>;
 
-  constructor(source:Iterator<T,TReturn,TNext>){
+  constructor(source: Iterator<T, TReturn, TNext>) {
     super();
-    this.source=source;
+    this.source = source;
   }
 
   next(...args: [] | [TNext]): IteratorResult<T, TReturn> {
