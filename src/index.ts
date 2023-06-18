@@ -6,9 +6,6 @@ export interface LazyIteratorFactory {
   //...
 }
 
-export type YieldMapper<F, T> = (value: F, index: number) => T;
-
-export const doneSymbol = Symbol();
 export const undoneSymbol = Symbol();
 
 export abstract class LazyIterator<T, TReturn = any, TNext = undefined>
@@ -80,92 +77,3 @@ export function injectLazyIterator(k: string | symbol, sth: any) {
     value: sth,
   });
 }
-
-export type ReturnMapper<F, T> = (value: F) => T;
-
-export class LazyMapIterator<
-  F,
-  T,
-  FReturn = any,
-  TReturn = FReturn,
-  TNext = undefined
-> extends LazyIterator<T, TReturn, TNext> {
-  protected source: LazyIterator<F, FReturn, TNext>;
-  protected currentPos = -1;
-
-  protected yieldMapper: YieldMapper<F, T>;
-  protected returnMapper: ReturnMapper<FReturn, TReturn>;
-
-  constructor(
-    source: LazyIterator<F, FReturn, TNext>,
-    yieldMapper: YieldMapper<F, T>,
-    returnMapper: ReturnMapper<FReturn, TReturn>
-  ) {
-    super();
-    this.source = source;
-    this.yieldMapper = yieldMapper;
-    this.returnMapper = returnMapper;
-  }
-
-  public next(...args: [] | [TNext]) {
-    this.currentPos++;
-    const old = this.source.next(...args);
-    return old.done
-      ? {
-          done: true as const,
-          value: this.returnMapper(old.value),
-        }
-      : {
-          done: false as const,
-          value: this.yieldMapper(
-            (old as IteratorYieldResult<F>).value,
-            this.currentPos
-          ),
-        };
-  }
-}
-declare module "./index.js" {
-  interface LazyIterator<T, TReturn = any, TNext = undefined> {
-    map<N, NReturn>(
-      yieldMapper: YieldMapper<T, N>,
-      returnMapper: ReturnMapper<TReturn, NReturn>
-    ): LazyMapIterator<T, N, TReturn, NReturn, TNext>;
-  }
-}
-
-injectLazyIterator("map", function (yieldMapper: any, returnMapper: any) {
-  return new LazyMapIterator(this, yieldMapper, returnMapper);
-});
-
-export class BasicLazyIterator<
-  T,
-  TReturn = any,
-  TNext = undefined
-> extends LazyIterator<T, TReturn, TNext> {
-  protected source: Iterator<T, TReturn, TNext>;
-
-  constructor(source: Iterator<T, TReturn, TNext>) {
-    super();
-    this.source = source;
-  }
-
-  next(...args: [] | [TNext]): IteratorResult<T, TReturn> {
-    return this.source.next(...args);
-  }
-}
-
-declare module "./index.js" {
-  interface LazyIteratorFactory {
-    from<T>(source: Iterable<T>): LazyIterator<T, any, undefined>;
-    from<T, TReturn, TNext>(
-      source: Iterator<T, TReturn, TNext>
-    ): LazyIterator<T, TReturn, TNext>;
-  }
-}
-
-injectLazyIteratorFactory("from", function (source: any) {
-  if (typeof source[Symbol.iterator] === "function") {
-    return new BasicLazyIterator(source[Symbol.iterator]());
-  }
-  return new BasicLazyIterator(source);
-});

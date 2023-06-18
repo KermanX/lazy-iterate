@@ -1,7 +1,5 @@
-import {
-  injectLazyIteratorFactory,
-  lazyIteratorFactory,
-} from "./index.js";
+import { injectLazyIteratorFactory, lazyIteratorFactory } from "./index.js";
+import { BasicLazyIterator } from "./basic.js";
 
 export function* LazyChainIterator<T>(
   ...iterables: Iterable<T>[]
@@ -16,10 +14,10 @@ declare module "./index.js" {
     chain<T>(...iterables: Iterable<T>[]): BasicLazyIterator<T>;
     chain<T, TNext = undefined>(
       ...iterators: Iterator<T, any, TNext>[]
-    ): LazyIterator<T, any, TNext>;
+    ): BasicLazyIterator<T, any, TNext>;
     chain<T, TNext = undefined>(
       ...iterators: LazyIterator<T, any, TNext>[]
-    ): LazyIterator<T, any, TNext>;
+    ): BasicLazyIterator<T, any, TNext>;
   }
 }
 
