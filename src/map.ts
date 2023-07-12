@@ -1,8 +1,11 @@
-import { LazyIterator, injectLazyIterator } from "./index.js";
+import { LazyIterator, injectLazyIteratorInstance } from "./iterator.js";
 
 export type YieldMapper<F, T> = (value: F, index: number) => T;
 export type ReturnMapper<F, T> = (value: F) => T;
 
+/**
+ * A lazy iterator that maps values from the source iterator.
+ */
 export class LazyMapIterator<
   F,
   T,
@@ -10,21 +13,14 @@ export class LazyMapIterator<
   TReturn = FReturn,
   TNext = undefined
 > extends LazyIterator<T, TReturn, TNext> {
-  protected source: LazyIterator<F, FReturn, TNext>;
   protected currentPos = -1;
 
-  protected yieldMapper: YieldMapper<F, T>;
-  protected returnMapper: ReturnMapper<FReturn, TReturn>;
-
   constructor(
-    source: LazyIterator<F, FReturn, TNext>,
-    yieldMapper: YieldMapper<F, T>,
-    returnMapper: ReturnMapper<FReturn, TReturn>
+    public source: LazyIterator<F, FReturn, TNext>,
+    public yieldMapper: YieldMapper<F, T>,
+    public returnMapper: ReturnMapper<FReturn, TReturn>
   ) {
     super();
-    this.source = source;
-    this.yieldMapper = yieldMapper;
-    this.returnMapper = returnMapper;
   }
 
   public next(...args: [] | [TNext]) {
@@ -45,15 +41,23 @@ export class LazyMapIterator<
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIterator<T, TReturn = any, TNext = undefined> {
+    /**
+     * Creates a lazy iterator that maps values from this lazy iterator.
+     * @param yieldMapper The mapper function to use to map values.
+     * @param returnMapper The mapper function to use to map the return value.
+     */
     map<N, NReturn>(
       yieldMapper: YieldMapper<T, N>,
-      returnMapper: ReturnMapper<TReturn, NReturn>
+      returnMapper?: ReturnMapper<TReturn, NReturn>
     ): LazyMapIterator<T, N, TReturn, NReturn, TNext>;
   }
 }
 
-injectLazyIterator("map", function (yieldMapper: any, returnMapper: any) {
-  return new LazyMapIterator(this, yieldMapper, returnMapper);
-});
+injectLazyIteratorInstance(
+  "map",
+  function (yieldMapper: any, returnMapper: any = (v) => v) {
+    return new LazyMapIterator(this, yieldMapper, returnMapper);
+  }
+);

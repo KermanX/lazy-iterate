@@ -1,20 +1,37 @@
-import { LazyIterator, injectLazyIterator } from "./index.js";
+import { LazyIterator, injectLazyIteratorInstance } from "./iterator.js";
 
-export const iter1doneSymbol = Symbol("iter1done");
-export const iter2doneSymbol = Symbol("iter2done");
+/**
+ * The enum of which iterator finished first in a zip iterator.
+ */
+export enum ZipDoneType {
+  /**
+   * The first iterator finished first.
+   */
+  iter1,
+  /**
+   * The second iterator finished first.
+   */
+  iter2,
+}
 
-type DoneType = typeof iter1doneSymbol | typeof iter2doneSymbol;
-
-type ZipReturn<TReturn1, TReturn2> =
+/**
+ * The return type of a zip iterator.
+ * @member type The type of iterator that finished.
+ * @member value The value returned by the iterator.
+ */
+export type ZipReturn<TReturn1, TReturn2> =
   | {
-      type: typeof iter1doneSymbol;
+      type: ZipDoneType.iter1;
       value: TReturn1;
     }
   | {
-      type: typeof iter2doneSymbol;
+      type: ZipDoneType.iter2;
       value: TReturn2;
     };
 
+/**
+ * A lazy iterator that zips two iterators together.
+ */
 export class LazyZipIterator<
   T1,
   T2,
@@ -27,16 +44,11 @@ export class LazyZipIterator<
   ZipReturn<TReturn1, TReturn2>,
   [TNext1, TNext2]
 > {
-  protected source1: LazyIterator<T1, TReturn1, TNext1>;
-  protected source2: LazyIterator<T2, TReturn2, TNext2>;
-
   constructor(
-    source1: LazyIterator<T1, TReturn1, TNext1>,
-    source2: LazyIterator<T2, TReturn2, TNext2>
+    public source1: LazyIterator<T1, TReturn1, TNext1>,
+    public source2: LazyIterator<T2, TReturn2, TNext2>
   ) {
     super();
-    this.source1 = source1;
-    this.source2 = source2;
   }
 
   public next(args: [TNext1, TNext2]) {
@@ -47,14 +59,14 @@ export class LazyZipIterator<
       ? {
           done: true as const,
           value: old1.done
-            ? {
-                type: iter1doneSymbol as typeof iter1doneSymbol,
+            ? ({
+                type: ZipDoneType.iter1,
                 value: old1.value,
-              }
-            : {
-                type: iter2doneSymbol as typeof iter2doneSymbol,
+              } as const)
+            : ({
+                type: ZipDoneType.iter2,
                 value: (old2 as IteratorReturnResult<TReturn2>).value,
-              },
+              } as const),
         }
       : {
           done: false as const,
@@ -67,18 +79,25 @@ export class LazyZipIterator<
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIterator<T, TReturn, TNext> {
+    /**
+     * Creates a lazy iterator that zips the source iterators.
+     * @param other The other iterator to zip with.
+     */
     zip<U, UReturn, UNext>(
       other: LazyIterator<U, UReturn, UNext>
     ): LazyZipIterator<T, U, TReturn, UReturn, TNext, UNext>;
   }
 }
 
-injectLazyIterator("zip", function (other: any) {
+injectLazyIteratorInstance("zip", function (other: any) {
   return new LazyZipIterator(this, other);
 });
 
+/**
+ * A lazy iterator that zips the source iterators, filling in missing values with a fill value.
+ */
 export class LazyZipLongestIterator<
   T1,
   T2,
@@ -87,22 +106,13 @@ export class LazyZipLongestIterator<
   TNext1 = undefined,
   TNext2 = undefined
 > extends LazyIterator<[T1, T2], [TReturn1, TReturn2], [TNext1, TNext2]> {
-  protected source1: LazyIterator<T1, TReturn1, TNext1>;
-  protected source2: LazyIterator<T2, TReturn2, TNext2>;
-  protected fillValue1: T1;
-  protected fillValue2: T2;
-
   constructor(
-    source1: LazyIterator<T1, TReturn1, TNext1>,
-    source2: LazyIterator<T2, TReturn2, TNext2>,
-    fillValue1: T1,
-    fillValue2: T2
+    public source1: LazyIterator<T1, TReturn1, TNext1>,
+    public source2: LazyIterator<T2, TReturn2, TNext2>,
+    public fillValue1: T1,
+    public fillValue2: T2
   ) {
     super();
-    this.source1 = source1;
-    this.source2 = source2;
-    this.fillValue1 = fillValue1;
-    this.fillValue2 = fillValue2;
   }
 
   public next(args: [TNext1, TNext2]) {
@@ -131,3 +141,37 @@ export class LazyZipLongestIterator<
     return result;
   }
 }
+
+declare module "./iterator" {
+  interface LazyIterator<T, TReturn, TNext> {
+    /**
+     * Creates a lazy iterator that zips the source iterators, filling in missing values with a fill value.
+     * @param other The other iterator to zip with.
+     * @param fillThis The value to fill in for the source iterator when it is done.
+     * @param fillOther The value to fill in for the other iterator when it is done. Defaults to `fillThis`.
+     */
+    zipLongest<UReturn, UNext>(
+      other: LazyIterator<T, UReturn, UNext>,
+      fillThis: T,
+      fillOther?: T
+    ): LazyZipLongestIterator<T, T, TReturn, UReturn, TNext, UNext>;
+    /**
+     * Creates a lazy iterator that zips the source iterators, filling in missing values with a fill value.
+     * @param other The other iterator to zip with.
+     * @param fillThis The value to fill in for the source iterator when it is done.
+     * @param fillOther The value to fill in for the other iterator when it is done. Defaults to `fillThis`.
+     */
+    zipLongest<U, UReturn, UNext>(
+      other: LazyIterator<U, UReturn, UNext>,
+      fillThis: T,
+      fillOther: U
+    ): LazyZipLongestIterator<T, U, TReturn, UReturn, TNext, UNext>;
+  }
+}
+
+injectLazyIteratorInstance(
+  "zipLongest",
+  function (other: any, fillThis: any, fillOther: any = fillThis) {
+    return new LazyZipLongestIterator(this, other, fillThis, fillOther);
+  }
+);

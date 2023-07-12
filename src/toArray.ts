@@ -1,12 +1,15 @@
-import { injectLazyIterator } from "./index.js";
+import { injectLazyIteratorInstance } from "./iterator.js";
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIterator<T, TReturn, TNext> {
+    /**
+     * Creates an array from the values in this lazy iterator.
+     */
     toArray(): T[];
   }
 }
 
-injectLazyIterator("toArray", function () {
+injectLazyIteratorInstance("toArray", function () {
   const result = [];
   for (let next = this.next(); !next.done; next = this.next()) {
     result.push(next.value);

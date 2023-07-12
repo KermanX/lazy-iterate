@@ -1,19 +1,17 @@
-import { LazyIterator, injectLazyIteratorFactory } from "./index.js";
+import { LazyIterator, injectLazyIteratorFactory } from "./iterator.js";
 
+/**
+ * A lazy iterator that repeats the given value for given times.
+ */
 export class LazyReplicateIterator<T> extends LazyIterator<
   T,
   undefined,
   undefined
 > {
-  protected source: T;
-  protected count: number;
-
   protected currentPos = -1;
 
-  constructor(source: T, count: number) {
+  constructor(public source: T, public count: number) {
     super();
-    this.source = source;
-    this.count = count;
   }
 
   public next() {
@@ -31,8 +29,13 @@ export class LazyReplicateIterator<T> extends LazyIterator<
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIteratorFactory {
+    /**
+     * Creates a lazy iterator that repeats the given value for given times.
+     * @param source The value to repeat
+     * @param count The number of times to repeat the value
+     */
     replicate<T>(source: T, count: number): LazyReplicateIterator<T>;
   }
 }

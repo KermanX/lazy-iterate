@@ -1,4 +1,4 @@
-import { injectLazyIteratorFactory, lazyIteratorFactory } from "./index.js";
+import { injectLazyIteratorFactory, lazyIteratorFactory } from "./iterator.js";
 import { BasicLazyIterator } from "./basic.js";
 
 export function* LazyChainIterator<T>(
@@ -9,18 +9,16 @@ export function* LazyChainIterator<T>(
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIteratorFactory {
+    /**
+     * Creates a lazy iterator that chains the given iterables.
+     * @param iterables The iterables to chain
+     */
     chain<T>(...iterables: Iterable<T>[]): BasicLazyIterator<T>;
-    chain<T, TNext = undefined>(
-      ...iterators: Iterator<T, any, TNext>[]
-    ): BasicLazyIterator<T, any, TNext>;
-    chain<T, TNext = undefined>(
-      ...iterators: LazyIterator<T, any, TNext>[]
-    ): BasicLazyIterator<T, any, TNext>;
   }
 }
 
-injectLazyIteratorFactory("chain", function (...iterables: any[]) {
+injectLazyIteratorFactory("chain", function (...iterables: any) {
   return lazyIteratorFactory.from(LazyChainIterator(...iterables));
 });

@@ -1,15 +1,15 @@
-import { LazyIterator, injectLazyIteratorFactory } from "./index.js";
+import { LazyIterator, injectLazyIteratorFactory } from "./iterator.js";
 
+/**
+ * A basic implementation of a lazy iterator, which wraps an existing iterator.
+ */
 export class BasicLazyIterator<
   T,
   TReturn = any,
   TNext = undefined
 > extends LazyIterator<T, TReturn, TNext> {
-  protected source: Iterator<T, TReturn, TNext>;
-
-  constructor(source: Iterator<T, TReturn, TNext>) {
+  constructor(public source: Iterator<T, TReturn, TNext>) {
     super();
-    this.source = source;
   }
 
   next(...args: [] | [TNext]): IteratorResult<T, TReturn> {
@@ -17,9 +17,17 @@ export class BasicLazyIterator<
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIteratorFactory {
+    /**
+     * Creates a lazy iterator from an existing iterator or iterable.
+     * @param source the source iterable
+     */
     from<T>(source: Iterable<T>): LazyIterator<T, any, undefined>;
+    /**
+     * Creates a lazy iterator from an existing iterator or iterable.
+     * @param source the source iterator
+     */
     from<T, TReturn, TNext>(
       source: Iterator<T, TReturn, TNext>
     ): LazyIterator<T, TReturn, TNext>;

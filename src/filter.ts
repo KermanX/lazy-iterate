@@ -1,20 +1,18 @@
-import { LazyIterator, injectLazyIterator } from "./index.js";
+import { LazyIterator, injectLazyIteratorInstance } from "./iterator.js";
 
+/**
+ * A lazy iterator that filters values from the source iterator.
+ */
 export class LazyFilterIterator<
   T,
   TReturn = any,
   TNext = undefined
 > extends LazyIterator<T, TReturn, TNext> {
-  protected source: LazyIterator<T, TReturn, TNext>;
-  protected predicate: (value: T) => boolean;
-
   constructor(
-    source: LazyIterator<T, TReturn, TNext>,
-    predicate: (value: T) => boolean
+    public source: LazyIterator<T, TReturn, TNext>,
+    public predicate: (value: T) => boolean
   ) {
     super();
-    this.source = source;
-    this.predicate = predicate;
   }
 
   public next(...args: [] | [TNext]) {
@@ -29,14 +27,18 @@ export class LazyFilterIterator<
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIterator<T, TReturn, TNext> {
+    /**
+     * Creates a lazy iterator that filters values from this lazy iterator.
+     * @param predicate The predicate function to use to filter values.
+     */
     filter(
       predicate: (value: T) => boolean
     ): LazyFilterIterator<T, TReturn, TNext>;
   }
 }
 
-injectLazyIterator("filter", function (predicate: any) {
+injectLazyIteratorInstance("filter", function (predicate: any) {
   return new LazyFilterIterator(this, predicate);
 });

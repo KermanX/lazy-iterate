@@ -1,10 +1,8 @@
 {
-    "compilerOptions": {
-        "lib": ["ESNext"],
-        "target":"ESNext",
-        "module": "ESNext",
-        "moduleResolution": "NodeNext",
-        "declaration": true,
-        "outDir": "./dist",
-    }
+  "compilerOptions": {
+    "target": "ES2019",
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "noEmit": true
+  }
 }

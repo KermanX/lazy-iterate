@@ -1,11 +1,11 @@
-import { LazyIterator, injectLazyIteratorFactory } from "./index.js";
+import { LazyIterator, injectLazyIteratorFactory } from "./iterator.js";
 
+/**
+ * A lazy iterator that repeats the given value forever.
+ */
 export class LazyRepeatIterator<T> extends LazyIterator<T, never, undefined> {
-  protected value: T;
-
-  constructor(value: T) {
+  constructor(public value: T) {
     super();
-    this.value = value;
   }
 
   public next() {
@@ -16,8 +16,12 @@ export class LazyRepeatIterator<T> extends LazyIterator<T, never, undefined> {
   }
 }
 
-declare module "./index.js" {
+declare module "./iterator" {
   interface LazyIteratorFactory {
+    /**
+     * Creates a lazy iterator that repeats the given value forever.
+     * @param value The value to repeat
+     */
     repeat<T>(value: T): LazyRepeatIterator<T>;
   }
 }
